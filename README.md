@@ -40,7 +40,7 @@ The only thing that you should really need to configure is the port and password
 
 ## Running the bot
 1. Launch the lavalink server.
-    - Note for lavalink to pickup the `application.yml`, the current working directory must be `/bin/lavalink/
+    - Note for lavalink to pickup the `application.yml`, the current working directory must be `/bin/lavalink/`
     ```
     java -jar lavalink.jar
     ```

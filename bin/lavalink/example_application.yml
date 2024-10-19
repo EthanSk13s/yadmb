@@ -1,0 +1,26 @@
+plugins:
+  youtube: 
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+    - MUSIC
+    - ANDROID_TESTSUITE
+    - WEB
+    - TVHTML5EMBEDDED
+    oauth:
+      enabled: true
+      refreshToken: "See the plugin page"
+      skipInitialization: true
+lavalink:
+  plugins:
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.8.3"
+      snapshot: false
+  server:
+    port: 8080
+    password: "test"
+    sources:
+      youtube: false
+      local: true
+    resamplingQuality: HIGH

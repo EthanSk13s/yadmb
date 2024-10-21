@@ -134,25 +134,8 @@ class Music(commands.Cog):
         if not ctx.guild:
             return
 
-        player: wavelink.Player
-        player = cast(wavelink.Player, ctx.voice_client)
-
+        player = await self.get_player(ctx)
         if not player:
-            try:
-                player = await ctx.author.voice.channel.connect(cls=wavelink.Player)  # type: ignore
-            except AttributeError:
-                await ctx.send("Please join a voice channel first before using this command.")
-                return
-            except discord.ClientException:
-                await ctx.send("I was unable to join this voice channel. Please try again.")
-                return
-        
-        player.autoplay = wavelink.AutoPlayMode.partial
-
-        if not hasattr(player, "home"):
-            player.home = ctx.channel
-        elif player.home != ctx.channel:
-            await ctx.send(f"You can only play songs in {player.home.mention}, as the player has already started there.")
             return
 
         result = await self.search_track(ctx, query)
@@ -309,23 +292,8 @@ class Music(commands.Cog):
 
             tracks = await db.fetch(tracks_query, albums[choice]["album_id"])
 
-        player: wavelink.Player
-        player = cast(wavelink.Player, ctx.voice_client)
-
+        player = await self.get_player(ctx)
         if not player:
-            try:
-                player = await ctx.author.voice.channel.connect(cls=wavelink.Player)  # type: ignore
-            except AttributeError:
-                await ctx.send("Please join a voice channel first before using this command.")
-                return
-            except discord.ClientException:
-                await ctx.send("I was unable to join this voice channel. Please try again.")
-                return
-        
-        if not hasattr(player, "home"):
-            player.home = ctx.channel
-        elif player.home != ctx.channel:
-            await ctx.send(f"You can only play songs in {player.home.mention}, as the player has already started there.")
             return
         
         for track in tracks:
@@ -384,26 +352,10 @@ class Music(commands.Cog):
         if not ctx.guild:
             return
 
-        player: wavelink.Player
-        player = cast(wavelink.Player, ctx.voice_client)
-
+        player = await self.get_player(ctx)
         if not player:
-            try:
-                player = await ctx.author.voice.channel.connect(cls=wavelink.Player)  # type: ignore
-            except AttributeError:
-                await ctx.send("Please join a voice channel first before using this command.")
-                return
-            except discord.ClientException:
-                await ctx.send("I was unable to join this voice channel. Please try again.")
-                return
-        
-        if not hasattr(player, "home"):
-            player.home = ctx.channel
-        elif player.home != ctx.channel:
-            await ctx.send(f"You can only play songs in {player.home.mention}, as the player has already started there.")
             return
-        
-        player.autoplay = wavelink.AutoPlayMode.partial
+
         async with self.bot.db.acquire() as db:
             playlist_query = """
                 SELECT playlist_id, playlist_name FROM playlist 
@@ -525,6 +477,30 @@ class Music(commands.Cog):
             return None
         else:
             return view.current_choice
+    
+    @classmethod
+    async def get_player(cls, ctx: commands.Context) -> wavelink.Player | None:
+        player: wavelink.Player
+        player = cast(wavelink.Player, ctx.voice_client)
+
+        if not player:
+            try:
+                player = await ctx.author.voice.channel.connect(cls=wavelink.Player)  # type: ignore
+            except AttributeError:
+                await ctx.send("Please join a voice channel first before using this command.")
+                return None
+            except discord.ClientException:
+                await ctx.send("I was unable to join this voice channel. Please try again.")
+                return None
+        
+        if not hasattr(player, "home"):
+            player.home = ctx.channel
+        elif player.home != ctx.channel:
+            await ctx.send(f"You can only play songs in {player.home.mention}, as the player has already started there.")
+            return None
+        
+        player.autoplay = wavelink.AutoPlayMode.partial
+        return player
 
 async def setup(bot: commands.Bot) -> None:
 

@@ -1,3 +1,4 @@
+from dataclasses import field
 import discord
 import wavelink
 
@@ -27,7 +28,7 @@ class MusicChoicePicker(View):
     def __init__(self, choices):
         super().__init__()
         self.choices = choices
-        self.current_choice = None
+        self.current_choice: int | None = None
 
         for i, _ in enumerate(choices):
             choice_num = str(i + 1)
@@ -273,6 +274,76 @@ class Music(commands.Cog):
             await db.execute(add_query, playlist_id['playlist_id'], track_id)
 
             await ctx.send(f"{search[choice]} has been added into the playlist {playlist}.")
+    
+    @playlist.command(name="album")
+    async def playlist_album(self, ctx: commands.Context, album: str) -> None:
+        """Play a specifc album in the local library."""
+        async with self.bot.db.acquire() as db:
+            album_query = """
+                SELECT * FROM album
+                    WHERE album_name ILIKE $1
+                    LIMIT 5;
+            """
+
+            albums = await db.fetch(album_query, f"%{album}%")
+            choice = 0
+            if not albums:
+                return
+            elif len(albums) > 1:
+                embed = discord.Embed(title="Album search results.")
+                embed.add_field(name="", value="".join(f"{i + 1}). {album['album_name']}\n" for i, album in enumerate(albums)))
+                view = MusicChoicePicker(albums)
+
+                await ctx.send(view=view, embed=embed, ephemeral=True)
+
+                await view.wait()
+                if view.current_choice is None:
+                    return
+                else:
+                    choice= view.current_choice
+            
+            tracks_query = """
+                SELECT song_path FROM song
+                    WHERE album_id = $1;
+            """
+
+            tracks = await db.fetch(tracks_query, albums[choice]["album_id"])
+
+        player: wavelink.Player
+        player = cast(wavelink.Player, ctx.voice_client)
+
+        if not player:
+            try:
+                player = await ctx.author.voice.channel.connect(cls=wavelink.Player)  # type: ignore
+            except AttributeError:
+                await ctx.send("Please join a voice channel first before using this command.")
+                return
+            except discord.ClientException:
+                await ctx.send("I was unable to join this voice channel. Please try again.")
+                return
+        
+        if not hasattr(player, "home"):
+            player.home = ctx.channel
+        elif player.home != ctx.channel:
+            await ctx.send(f"You can only play songs in {player.home.mention}, as the player has already started there.")
+            return
+        
+        for track in tracks:
+            uri = track['song_path']
+            result: wavelink.Search = await wavelink.Playable.search(uri, source=None)
+            if not result:
+                result = await wavelink.Playable.search(uri)
+
+                if not result:
+                    yt = wavelink.TrackSource.YouTube
+                    result = await wavelink.Playable.search(uri, source=yt)
+            
+            await player.queue.put_wait(result[0])
+        if not player.playing:
+            # Play now since we aren't playing anything...
+            await player.play(player.queue.get(), volume=30)
+            
+        await ctx.send(f"{albums[choice]["album_name"]} has been added to the queue.")
 
     @playlist.command(name="import")
     async def playlist_import(self, ctx: commands.Context) -> None:

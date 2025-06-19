@@ -198,12 +198,12 @@ class Music(commands.Cog):
         """Add a song into a specific playlist"""
         async with self.bot.db.acquire() as db:
             search_query = """
-                SELECT COUNT(playlist_id) FROM playlist 
+                SELECT playlist_id FROM playlist 
                     WHERE playlist_name LIKE $1 AND
                     guild_id = $2;
             """
             playlist_id = await db.fetchval(search_query, f"{playlist}", ctx.guild.id)
-            if not playlist_id:
+            if playlist_id <= 0:
                 await ctx.send("That playlist does not exist.",
                                 ephemeral=True)
                 return
@@ -220,7 +220,7 @@ class Music(commands.Cog):
                     VALUES ($1, $2)
             """
             if len(track_id) == 1:
-                await db.execute(add_query, playlist_id['playlist_id'], track_id[0]['track_id'])
+                await db.execute(add_query, playlist_id, track_id[0]['track_id'])
                 await ctx.send(f"That song has been added to {playlist}",
                                 ephemeral=True)
 
@@ -231,7 +231,7 @@ class Music(commands.Cog):
                 if choice is None:
                     return
                 
-                await db.execute(add_query, playlist_id['playlist_id'], track_id[choice]['track_id'])
+                await db.execute(add_query, playlist_id, track_id[choice]['track_id'])
                 await ctx.send(f"That song has been added to {playlist}",
                                 ephemeral=True)
 
@@ -254,7 +254,7 @@ class Music(commands.Cog):
             track_id = await db.fetchval(new_track_query,
                                               search[choice].title,
                                               search[choice].uri)
-            await db.execute(add_query, playlist_id['playlist_id'], track_id)
+            await db.execute(add_query, playlist_id, track_id)
 
             await ctx.send(f"{search[choice]} has been added into the playlist {playlist}.")
     

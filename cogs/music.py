@@ -393,6 +393,18 @@ class Music(commands.Cog):
             
             await ctx.send(f"{playlist} has been added to the queue.")
 
+    @commands.command(name="clear")
+    async def queue_clear(self, ctx: commands.Context) -> None:
+        """Clear a playlist"""
+        if not ctx.guild:
+            return
+
+        player = await self.get_player(ctx)
+        if not player:
+            return
+        
+        player.queue.clear()
+        await ctx.send("Queue cleared.")
 
     async def search_track(self, ctx: commands.Context,
                            query: str) -> tuple[int, wavelink.Search] | None:

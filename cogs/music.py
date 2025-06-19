@@ -203,7 +203,7 @@ class Music(commands.Cog):
                     guild_id = $2;
             """
             playlist_id = await db.fetchval(search_query, f"{playlist}", ctx.guild.id)
-            if playlist_id:
+            if not playlist_id:
                 await ctx.send("That playlist does not exist.",
                                 ephemeral=True)
                 return

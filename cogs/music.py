@@ -175,12 +175,12 @@ class Music(commands.Cog):
         """Create a playlist in this server."""
         async with self.bot.db.acquire() as db:
             search_query = """
-                SELECT playlist_id FROM playlist 
+                SELECT COUNT(playlist_id) FROM playlist 
                     WHERE playlist_name LIKE $1 AND
                     guild_id = $2;
             """
 
-            result = await db.fetch(search_query, f"{name}", ctx.guild.id)
+            result = await db.fetchval(search_query, f"{name}", ctx.guild.id)
             if result:
                 await ctx.send("A playlist with that name already exists in this guild.",
                                 ephemeral=True)
@@ -198,12 +198,12 @@ class Music(commands.Cog):
         """Add a song into a specific playlist"""
         async with self.bot.db.acquire() as db:
             search_query = """
-                SELECT playlist_id FROM playlist 
+                SELECT COUNT(playlist_id) FROM playlist 
                     WHERE playlist_name LIKE $1 AND
                     guild_id = $2;
             """
-            playlist_id = await db.fetchrow(search_query, f"{playlist}", ctx.guild.id)
-            if not playlist_id:
+            playlist_id = await db.fetchval(search_query, f"{playlist}", ctx.guild.id)
+            if playlist_id:
                 await ctx.send("That playlist does not exist.",
                                 ephemeral=True)
                 return
